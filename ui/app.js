@@ -179,12 +179,13 @@ function extractTitle(sourcePath) {
 
 function createRecord(line, lineNumber, fileName) {
   const raw = JSON.parse(line);
-  const parsedHeaJson = safeJsonParse(raw.hea_json);
+  const structuredJsonText = raw.alloy_json ?? raw.hea_json;
+  const parsedAlloyJson = safeJsonParse(structuredJsonText);
   const searchBlob = [
     fileName,
     raw.source,
     raw.text_path,
-    raw.hea_json,
+    structuredJsonText,
     raw.llm_raw_output,
     JSON.stringify(raw),
   ].join(" ").toLowerCase();
@@ -194,7 +195,7 @@ function createRecord(line, lineNumber, fileName) {
     fileName,
     lineNumber,
     raw,
-    parsedHeaJson,
+    parsedAlloyJson,
     title: extractTitle(raw.source),
     searchBlob,
   };
@@ -299,20 +300,20 @@ function renderFiles() {
 
 function renderTags(record) {
   const tags = [];
-  if (record.parsedHeaJson) {
-    tags.push('<span class="tag">hea_json</span>');
+  if (record.parsedAlloyJson) {
+    tags.push('<span class="tag">alloy_json</span>');
   } else {
     tags.push('<span class="tag warn">parse failed</span>');
   }
 
   ["UTS", "YS", "El"].forEach((key) => {
-    if (isMeaningful(record.parsedHeaJson?.[key]?.value)) {
+    if (isMeaningful(record.parsedAlloyJson?.[key]?.value)) {
       tags.push(`<span class="tag">${escapeHtml(key)}</span>`);
     }
   });
 
-  if (isMeaningful(record.parsedHeaJson?.category)) {
-    tags.push(`<span class="tag">${escapeHtml(record.parsedHeaJson.category)}</span>`);
+  if (isMeaningful(record.parsedAlloyJson?.category)) {
+    tags.push(`<span class="tag">${escapeHtml(record.parsedAlloyJson.category)}</span>`);
   }
 
   return tags.join("");
@@ -357,7 +358,7 @@ function renderSummary(record) {
     return;
   }
 
-  const parsed = record.parsedHeaJson || {};
+  const parsed = record.parsedAlloyJson || {};
   const items = [
     ["标题", record.title],
     ["来源", record.raw.source || "no information"],
@@ -399,7 +400,7 @@ function renderStructured(record) {
     return;
   }
 
-  const parsed = record.parsedHeaJson || {};
+  const parsed = record.parsedAlloyJson || {};
   const sections = [
     ["Composition", parsed.composition || record.raw.composition || "no information", "成分与体系信息"],
     ["Processing", parsed.processing || record.raw.processing || "no information", "工艺、流程、处理条件"],
@@ -414,7 +415,7 @@ function renderStructured(record) {
       raw_text: parsed.raw_text || "no information",
       test_conditions: parsed.test_conditions || record.raw.test_conditions || "no information",
     }, "分类、原文与测试条件"],
-    ["hea_json", parsed || "no information", "解析后的完整结构"],
+    ["alloy_json", parsed || "no information", "解析后的完整结构"],
   ];
 
   el.structuredView.className = "accordion-root";
@@ -466,7 +467,7 @@ function renderStats() {
   const fileCount = state.files.length;
   const recordCount = state.files.reduce((sum, file) => sum + file.records.length, 0);
   const parsedCount = state.files.reduce(
-    (sum, file) => sum + file.records.filter((record) => Boolean(record.parsedHeaJson)).length,
+    (sum, file) => sum + file.records.filter((record) => Boolean(record.parsedAlloyJson)).length,
     0
   );
 

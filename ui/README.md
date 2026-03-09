@@ -10,13 +10,13 @@
 
 ## 适用文件
 
-- `cache/hea_pipeline/hea_extraction_step1.jsonl`
-- `cache/hea_pipeline/hea_extraction_step2.jsonl`
-- `cache/hea_pipeline/pdf_sources.jsonl`
+- `cache/alloy_pipeline/alloy_extraction_step1.jsonl`
+- `cache/alloy_pipeline/alloy_extraction_step2.jsonl`
+- `cache/alloy_pipeline/pdf_sources.jsonl`
 
 ## 当前能力
 
 - 支持单选或多选批量上传
 - 支持按标题、路径、字段内容搜索
-- 自动解析每行 JSON 和 `hea_json` 字段
+- 自动解析每行 JSON 和 `alloy_json` 字段
 - 同时显示摘要字段、解析后的 JSON、原始记录

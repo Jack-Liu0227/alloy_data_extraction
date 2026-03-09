@@ -7,10 +7,10 @@ from dataflow.utils.registry import OPERATOR_REGISTRY
 from alloy_data_extraction.operators.core.markdown_json_schema_extractor import (
     MarkdownJsonSchemaExtractor,
 )
-from alloy_data_extraction.prompts.core import HEAExtractionPrompt
+from alloy_data_extraction.prompts.core import AlloyExtractionPrompt
 
 
-HEA_DEFAULT_RECORD = {
+ALLOY_DEFAULT_RECORD = {
     "category": "no information",
     "composition": [],
     "processing": "no information",
@@ -21,7 +21,7 @@ HEA_DEFAULT_RECORD = {
     "raw_text": "no information",
 }
 
-HEA_JSON_SCHEMA = {
+ALLOY_JSON_SCHEMA = {
     "type": "object",
     "properties": {
         "composition": {
@@ -86,15 +86,15 @@ HEA_JSON_SCHEMA = {
 }
 
 
-@prompt_restrict(HEAExtractionPrompt)
+@prompt_restrict(AlloyExtractionPrompt)
 @OPERATOR_REGISTRY.register()
-class HEAInfoExtractor(MarkdownJsonSchemaExtractor):
-    """HEA-specific wrapper around the generic markdown JSON extractor."""
+class AlloyInfoExtractor(MarkdownJsonSchemaExtractor):
+    """Alloy-specific wrapper around the generic markdown JSON extractor."""
 
     def __init__(
         self,
         llm_serving: LLMServingABC,
-        prompt_template: Union[HEAExtractionPrompt, DIYPromptABC, None] = None,
+        prompt_template: Union[AlloyExtractionPrompt, DIYPromptABC, None] = None,
         max_chars: int = 50000,
         request_retries: int = 3,
         retry_sleep_sec: float = 2.0,
@@ -102,9 +102,9 @@ class HEAInfoExtractor(MarkdownJsonSchemaExtractor):
     ):
         super().__init__(
             llm_serving=llm_serving,
-            prompt_template=prompt_template or HEAExtractionPrompt(max_chars=max_chars),
-            json_schema=HEA_JSON_SCHEMA,
-            default_record=HEA_DEFAULT_RECORD,
+            prompt_template=prompt_template or AlloyExtractionPrompt(max_chars=max_chars),
+            json_schema=ALLOY_JSON_SCHEMA,
+            default_record=ALLOY_DEFAULT_RECORD,
             max_chars=max_chars,
             request_retries=request_retries,
             retry_sleep_sec=retry_sleep_sec,
@@ -115,20 +115,20 @@ class HEAInfoExtractor(MarkdownJsonSchemaExtractor):
     def get_desc(lang: str = "zh"):
         if lang == "zh":
             return (
-                "HEAInfoExtractor 是高熵合金文献抽取算子。"
-                "它读取 Markdown 内容路径，输出 hea_json 以及 composition、processing、properties、test_conditions 四列。"
+                "AlloyInfoExtractor 是通用合金文献抽取算子。"
+                "它读取 Markdown 内容路径，输出 alloy_json 以及 composition、processing、properties、test_conditions 四列。"
             )
         if lang == "en":
             return (
-                "HEAInfoExtractor extracts HEA-specific fields from markdown paths and writes "
-                "hea_json, category, composition, processing, UTS, YS, El, and test_conditions."
+                "AlloyInfoExtractor extracts alloy-specific fields from markdown paths and writes "
+                "alloy_json, category, composition, processing, UTS, YS, El, and test_conditions."
             )
-        return "Extract HEA-specific fields from markdown."
+        return "Extract alloy-specific fields from markdown."
 
     def run(
         self,
         storage,
         input_key: str = "text_path",
-        output_key: str = "hea_json",
+        output_key: str = "alloy_json",
     ):
         return super().run(storage=storage, input_key=input_key, output_key=output_key)

@@ -4,7 +4,7 @@ English documentation for this project. The default documentation remains Chines
 
 ## Overview
 
-This project extracts structured HEA information from academic PDFs with a DataFlow pipeline:
+This project extracts structured alloy information from academic PDFs with a DataFlow pipeline:
 
 1. Convert PDF files to Markdown
 2. Extract structured alloy information from Markdown with an LLM
@@ -88,25 +88,25 @@ To switch providers or models, update these three values only.
 Default run:
 
 ```bash
-python -m alloy_data_extraction.pipelines.hea_pdf_pipeline \
+python -m alloy_data_extraction.pipelines.alloy_pdf_pipeline \
   --pdf-root "D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv" \
-  --cache-path "./cache/hea_pipeline" \
-  --md-output-dir "./cache/hea_pipeline/md" \
+  --cache-path "./cache/alloy_pipeline" \
+  --md-output-dir "./cache/alloy_pipeline/md" \
   --env-file ".env" \
   --resume-step auto
 ```
 
 ## Resume Logic
 
-Resume logic is implemented in [hea_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/hea_pdf_pipeline.py).
+Resume logic is implemented in [alloy_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/alloy_pdf_pipeline.py).
 
 - `step1`: PDF -> Markdown
-- `step2`: Markdown -> HEA extraction
+- `step2`: Markdown -> alloy extraction
 
 Manual resume example:
 
 ```bash
-python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
+python -m alloy_data_extraction.pipelines.alloy_pdf_pipeline --resume-step 1
 ```
 
 ## Outputs
@@ -114,19 +114,19 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
 Default cache directory:
 
 ```text
-./cache/hea_pipeline
+./cache/alloy_pipeline
 ```
 
 Main outputs:
 
 - `pdf_sources.jsonl`
-- `hea_extraction_step1.jsonl`
-- `hea_extraction_step2.jsonl`
+- `alloy_extraction_step1.jsonl`
+- `alloy_extraction_step2.jsonl`
 - `md/`
 
 Final extracted columns:
 
-- `hea_json`
+- `alloy_json`
 - `composition`
 - `processing`
 - `properties`

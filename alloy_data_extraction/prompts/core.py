@@ -3,11 +3,11 @@ from dataflow.utils.registry import PROMPT_REGISTRY
 
 
 @PROMPT_REGISTRY.register()
-class HEAExtractionPrompt(PromptABC):
-    """Prompt template for HEA literature extraction."""
+class AlloyExtractionPrompt(PromptABC):
+    """Prompt template for generic alloy literature extraction."""
 
     SYSTEM_PROMPT = (
-        "You are a materials extraction assistant for high-entropy alloy literature. "
+        "You are a materials extraction assistant for alloy literature. "
         "Return one JSON object only. "
         "Use the exact keys category, composition, processing, UTS, YS, El, test_conditions, raw_text. "
         "Follow the requested JSON structure exactly. "
@@ -22,7 +22,7 @@ class HEAExtractionPrompt(PromptABC):
     def build_prompt(self, markdown_text: str) -> str:
         content = (markdown_text or "")[: self.max_chars]
         return (
-            "Extract HEA information from the markdown below.\n\n"
+            "Extract alloy information from the markdown below.\n\n"
             "Return exactly one JSON object with the following schema:\n\n"
             "{\n"
             '  "category": "experimental | computational | combined | no information",\n'

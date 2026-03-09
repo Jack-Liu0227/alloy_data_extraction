@@ -9,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from alloy_data_extraction.utils.manifest import build_pdf_manifest
 
 DEFAULT_INPUT_ROOT = r"D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv"
-DEFAULT_OUTPUT_PATH = "./cache/hea_pipeline/pdf_sources.jsonl"
+DEFAULT_OUTPUT_PATH = "./cache/alloy_pipeline/pdf_sources.jsonl"
 
 
 def main() -> None:

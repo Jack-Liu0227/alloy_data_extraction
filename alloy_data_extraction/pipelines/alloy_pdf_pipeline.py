@@ -5,7 +5,7 @@ from pathlib import Path
 from dataflow.pipeline import PipelineABC
 from dataflow.utils.storage import FileStorage
 
-from alloy_data_extraction.operators.domain.hea_info_extractor import HEAInfoExtractor
+from alloy_data_extraction.operators.domain.alloy_info_extractor import AlloyInfoExtractor
 from alloy_data_extraction.provider import build_api_llm_serving
 from alloy_data_extraction.utils.manifest import build_pdf_manifest
 
@@ -16,9 +16,9 @@ except ImportError:
 
 
 DEFAULT_PDF_ROOT = r"D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv"
-DEFAULT_CACHE_PATH = "./cache/hea_pipeline"
-DEFAULT_MD_OUTPUT_DIR = "./cache/hea_pipeline/md"
-DEFAULT_FILE_PREFIX = "hea_extraction"
+DEFAULT_CACHE_PATH = "./cache/alloy_pipeline"
+DEFAULT_MD_OUTPUT_DIR = "./cache/alloy_pipeline/md"
+DEFAULT_FILE_PREFIX = "alloy_extraction"
 DEFAULT_MINERU_BACKEND = "vlm-auto-engine"
 
 
@@ -55,7 +55,7 @@ def build_markdown_converter(md_output_dir: str, mineru_backend: str):
     return MarkdownConverter(**converter_kwargs)
 
 
-class HEAPdfExtractionPipeline(PipelineABC):
+class AlloyPdfExtractionPipeline(PipelineABC):
     def __init__(
         self,
         pdf_root: str,
@@ -91,7 +91,7 @@ class HEAPdfExtractionPipeline(PipelineABC):
             md_output_dir=md_output_dir,
             mineru_backend=mineru_backend,
         )
-        self.extract_hea_info = HEAInfoExtractor(llm_serving=self.llm_serving)
+        self.extract_alloy_info = AlloyInfoExtractor(llm_serving=self.llm_serving)
 
     def forward(self):
         self.pdf_to_markdown.run(
@@ -99,15 +99,15 @@ class HEAPdfExtractionPipeline(PipelineABC):
             input_key="source",
             output_key="text_path",
         )
-        self.extract_hea_info.run(
+        self.extract_alloy_info.run(
             storage=self.storage.step(),
             input_key="text_path",
-            output_key="hea_json",
+            output_key="alloy_json",
         )
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="HEA PDF extraction pipeline with resume support.")
+    parser = argparse.ArgumentParser(description="Alloy PDF extraction pipeline with resume support.")
     parser.add_argument("--pdf-root", default=DEFAULT_PDF_ROOT, help="Root folder containing pdf files.")
     parser.add_argument("--cache-path", default=DEFAULT_CACHE_PATH)
     parser.add_argument("--md-output-dir", default=DEFAULT_MD_OUTPUT_DIR)
@@ -125,7 +125,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = build_argument_parser().parse_args()
-    pipeline = HEAPdfExtractionPipeline(
+    pipeline = AlloyPdfExtractionPipeline(
         pdf_root=args.pdf_root,
         cache_path=args.cache_path,
         md_output_dir=args.md_output_dir,

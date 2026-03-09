@@ -3,11 +3,11 @@
 面向合金材料文献的 DataFlow 抽取项目。  
 输入是一批 PDF，输出是 Markdown 中间结果和结构化字段 JSON。
 
-当前仓库的定位是“通用合金文献抽取框架 + 一个现成可跑的 HEA 示例实现”：
+当前仓库的定位是通用合金文献抽取框架：
 
 - `operators/core/` 中的核心抽取算子不绑定具体合金体系
 - 通过替换 Prompt、Schema 和领域算子，可以扩展到任意合金方向
-- 仓库当前默认提供的现成 Pipeline 仍然是 HEA 示例 Pipeline
+- 默认提供的主入口已经统一为通用合金抽取命名
 
 默认文档为中文。英文文档见 [README_EN.md](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/README_EN.md)。
 
@@ -32,7 +32,7 @@
 1. 将 PDF 批量转为 Markdown
 2. 从 Markdown 中提取结构化合金信息
 
-当前仓库内置的示例实现聚焦 HEA，并默认抽取 4 个字段：
+当前默认抽取 4 个字段：
 
 - `composition`
 - `processing`
@@ -59,9 +59,9 @@ alloy_data_extraction/
 │  │  ├─ core/
 │  │  │  └─ markdown_json_schema_extractor.py
 │  │  └─ domain/
-│  │     └─ hea_info_extractor.py
+│  │     └─ alloy_info_extractor.py
 │  ├─ pipelines/
-│  │  └─ hea_pdf_pipeline.py
+│  │  └─ alloy_pdf_pipeline.py
 │  ├─ prompts/
 │  │  └─ core.py
 │  └─ utils/
@@ -78,13 +78,13 @@ alloy_data_extraction/
 - `provider.py`
   负责读取 `.env` 并创建 `APILLMServing_request`
 - `prompts/core.py`
-  负责定义当前示例中的 HEA 抽取 Prompt
+  负责定义通用合金抽取 Prompt
 - `operators/core/`
   放通用可复用算子，不绑定具体合金领域
 - `operators/domain/`
-  放领域封装算子，当前仓库内置的是 HEA 示例
+  放领域封装算子，当前仓库内置的是通用合金抽取算子
 - `pipelines/`
-  放符合 DataFlow 风格的流水线编排，当前内置主入口为 HEA Pipeline
+  放符合 DataFlow 风格的流水线编排，当前内置主入口为通用合金 Pipeline
 - `utils/manifest.py`
   负责构建输入 JSONL 清单
 - `scripts/`
@@ -168,7 +168,7 @@ DF_MODEL_ID=deepseek-chat
 
 [alloy_data_extraction/prompts/core.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/prompts/core.py)
 
-- `HEAExtractionPrompt` 继承 `PromptABC`
+- `AlloyExtractionPrompt` 继承 `PromptABC`
 - `build_prompt(markdown_text=...)` 只负责拼装输入
 - `system_prompt` 作为 Prompt 对象的一部分保存
 
@@ -184,34 +184,34 @@ DF_MODEL_ID=deepseek-chat
 - 根据默认字段补全缺失值
 - 将结构化结果写回 `output_key` 和各个字段列
 
-它不绑定 HEA 字段，因此后续可以复用于任意合金或其他材料方向。
+它不绑定具体合金体系，因此后续可以复用于任意合金或其他材料方向。
 
 ### 5.3 Domain Operator
 
-[alloy_data_extraction/operators/domain/hea_info_extractor.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/operators/domain/hea_info_extractor.py)
+[alloy_data_extraction/operators/domain/alloy_info_extractor.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/operators/domain/alloy_info_extractor.py)
 
-这是当前仓库内置的 HEA 领域算子，负责：
+这是当前仓库内置的通用合金领域算子，负责：
 
-- 绑定 HEA 专用 Prompt
-- 绑定 HEA JSON Schema
-- 绑定 HEA 默认输出字段
-- 默认输出列名为 `hea_json`
+- 绑定通用合金 Prompt
+- 绑定通用合金 JSON Schema
+- 绑定默认输出字段
+- 默认输出列名为 `alloy_json`
 
 它本质上是对 core 算子的二次封装，这种写法更接近 DataFlow 官方推荐的“通用能力 + 领域配置”分层。
 
 ### 5.4 Pipeline
 
-[alloy_data_extraction/pipelines/hea_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/hea_pdf_pipeline.py)
+[alloy_data_extraction/pipelines/alloy_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/alloy_pdf_pipeline.py)
 
 Pipeline 只做编排，不在 `forward()` 内写复杂业务逻辑：
 
 1. PDF -> Markdown
-2. Markdown -> HEA 字段抽取
+2. Markdown -> 合金字段抽取
 
 并按 DataFlow 习惯使用：
 
 ```python
-pipeline = HEAPdfExtractionPipeline(...)
+pipeline = AlloyPdfExtractionPipeline(...)
 pipeline.compile()
 pipeline.forward(resume_step=resume_step)
 ```
@@ -225,7 +225,7 @@ pipeline.forward(resume_step=resume_step)
 ```bash
 python scripts/build_pipeline_input.py \
   --input-root "D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv" \
-  --output "./cache/hea_pipeline/pdf_sources.jsonl"
+  --output "./cache/alloy_pipeline/pdf_sources.jsonl"
 ```
 
 生成后的 JSONL 每行形如：
@@ -248,10 +248,10 @@ python scripts/build_pipeline_input.py \
 ### 7.1 执行主 Pipeline
 
 ```bash
-python -m alloy_data_extraction.pipelines.hea_pdf_pipeline \
+python -m alloy_data_extraction.pipelines.alloy_pdf_pipeline \
   --pdf-root "D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv" \
-  --cache-path "./cache/hea_pipeline" \
-  --md-output-dir "./cache/hea_pipeline/md" \
+  --cache-path "./cache/alloy_pipeline" \
+  --md-output-dir "./cache/alloy_pipeline/md" \
   --env-file ".env" \
   --resume-step auto
 ```
@@ -277,12 +277,12 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline \
 
 ## 8. 断点恢复
 
-断点恢复逻辑位于 [alloy_data_extraction/pipelines/hea_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/hea_pdf_pipeline.py) 中的 `resolve_resume_step(...)`。
+断点恢复逻辑位于 [alloy_data_extraction/pipelines/alloy_pdf_pipeline.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/pipelines/alloy_pdf_pipeline.py) 中的 `resolve_resume_step(...)`。
 
 当前约定：
 
 - `step1` 对应 PDF -> Markdown
-- `step2` 对应 Markdown -> HEA 抽取
+- `step2` 对应 Markdown -> 合金字段抽取
 
 自动恢复规则：
 
@@ -294,7 +294,7 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline \
 手动指定恢复：
 
 ```bash
-python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
+python -m alloy_data_extraction.pipelines.alloy_pdf_pipeline --resume-step 1
 ```
 
 ## 9. 输出结果
@@ -302,29 +302,29 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
 默认缓存目录是：
 
 ```text
-./cache/hea_pipeline
+./cache/alloy_pipeline
 ```
 
 关键输出包括：
 
 - `pdf_sources.jsonl`
   输入 PDF 清单
-- `hea_extraction_step1.jsonl`
+- `alloy_extraction_step1.jsonl`
   Markdown 转换阶段输出
-- `hea_extraction_step2.jsonl`
+- `alloy_extraction_step2.jsonl`
   抽取阶段输出
 - `md/`
   Markdown 中间文件及相关解析结果
 
 最终抽取结果包含：
 
-- `hea_json`
+- `alloy_json`
 - `composition`
 - `processing`
 - `properties`
 - `test_conditions`
 
-其中 `hea_json` 是单列 JSON 字符串，其他 4 列是拆分后的字段列。
+其中 `alloy_json` 是单列 JSON 字符串，其他 4 列是拆分后的字段列。
 
 ## 10. UI 查看器说明
 
@@ -336,9 +336,9 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
 
 ### 10.2 适合查看的文件
 
-- `cache/hea_pipeline/pdf_sources.jsonl`
-- `cache/hea_pipeline/hea_extraction_step1.jsonl`
-- `cache/hea_pipeline/hea_extraction_step2.jsonl`
+- `cache/alloy_pipeline/pdf_sources.jsonl`
+- `cache/alloy_pipeline/alloy_extraction_step1.jsonl`
+- `cache/alloy_pipeline/alloy_extraction_step2.jsonl`
 
 如果你后续扩展了别的合金 Pipeline，只要输出仍然是 JSONL，这个查看器通常也可以直接复用。
 
@@ -354,16 +354,16 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
 
 - 支持本地拖拽上传和多文件导入
 - 支持按标题、路径、字段内容搜索记录
-- 会自动解析每行 JSON，以及记录中的 `hea_json` 字段
+- 会自动解析每行 JSON，以及记录中的 `alloy_json` 字段
 - 支持复制字段内容
 - 支持原始 JSON 全屏查看
 - 所有解析都在浏览器本地完成，不上传文件
 
 ### 10.5 UI 使用建议
 
-- 看整体处理进度时，优先导入 `hea_extraction_step1.jsonl` 和 `hea_extraction_step2.jsonl`
+- 看整体处理进度时，优先导入 `alloy_extraction_step1.jsonl` 和 `alloy_extraction_step2.jsonl`
 - 排查抽取质量时，重点对照 `source`、`text_path`、结构化字段和原始 JSON
-- 如果某条记录没有正确解析 `hea_json`，可以先从右侧原始 JSON 判断是模型输出问题还是 JSON 格式问题
+- 如果某条记录没有正确解析 `alloy_json`，可以先从右侧原始 JSON 判断是模型输出问题还是 JSON 格式问题
 
 更多补充说明见 [ui/README.md](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/ui/README.md)。
 
@@ -384,24 +384,24 @@ llm = build_api_llm_serving(
 ### 11.2 单独实例化 Pipeline
 
 ```python
-from alloy_data_extraction.pipelines.hea_pdf_pipeline import (
-    HEAPdfExtractionPipeline,
+from alloy_data_extraction.pipelines.alloy_pdf_pipeline import (
+    AlloyPdfExtractionPipeline,
     resolve_resume_step,
 )
 
-pipeline = HEAPdfExtractionPipeline(
+pipeline = AlloyPdfExtractionPipeline(
     pdf_root=r"D:\XJTU\ImportantFile\auto-design-alloy\database\papers\arxiv",
     env_file=".env",
 )
 pipeline.compile()
-pipeline.forward(resume_step=resolve_resume_step("./cache/hea_pipeline"))
+pipeline.forward(resume_step=resolve_resume_step("./cache/alloy_pipeline"))
 ```
 
 ## 12. 当前实现约束
 
 为了保持代码简单，当前版本有这些约束：
 
-- 当前内置 HEA 示例只抽取 4 个固定字段
+- 当前版本只抽取 4 个固定字段
 - `BASE_URLS` 如果配置多个地址，只使用第一个
 - Markdown 读取失败时，该条会退化为空文本抽取
 - 某些 OpenAI-compatible 接口不支持 `json_schema` 时会自动降级，但仍要求模型最终返回可解析 JSON
@@ -410,6 +410,6 @@ pipeline.forward(resume_step=resolve_resume_step("./cache/hea_pipeline"))
 
 如果后续继续扩展，建议保持现在这套分层：
 
-1. 新增字段时，优先只改 `prompts/core.py` 和 `operators/domain/hea_info_extractor.py`
+1. 新增字段时，优先只改 `prompts/core.py` 和 `operators/domain/alloy_info_extractor.py`
 2. 新增合金方向时，复用 `operators/core/markdown_json_schema_extractor.py`
-3. 新增流水线步骤时，只在 `pipelines/hea_pdf_pipeline.py` 追加算子，不把业务细节塞进 `forward()`
+3. 新增流水线步骤时，只在 `pipelines/alloy_pdf_pipeline.py` 追加算子，不把业务细节塞进 `forward()`
