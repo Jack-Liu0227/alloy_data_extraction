@@ -1,7 +1,13 @@
 # Alloy Data Extraction
 
-面向高熵合金（HEA）文献的 DataFlow 抽取项目。  
+面向合金材料文献的 DataFlow 抽取项目。  
 输入是一批 PDF，输出是 Markdown 中间结果和结构化字段 JSON。
+
+当前仓库的定位是“通用合金文献抽取框架 + 一个现成可跑的 HEA 示例实现”：
+
+- `operators/core/` 中的核心抽取算子不绑定具体合金体系
+- 通过替换 Prompt、Schema 和领域算子，可以扩展到任意合金方向
+- 仓库当前默认提供的现成 Pipeline 仍然是 HEA 示例 Pipeline
 
 默认文档为中文。英文文档见 [README_EN.md](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/README_EN.md)。
 
@@ -24,9 +30,9 @@
 本仓库做两件事：
 
 1. 将 PDF 批量转为 Markdown
-2. 从 Markdown 中提取高熵合金关键信息
+2. 从 Markdown 中提取结构化合金信息
 
-当前固定抽取 4 个字段：
+当前仓库内置的示例实现聚焦 HEA，并默认抽取 4 个字段：
 
 - `composition`
 - `processing`
@@ -34,6 +40,12 @@
 - `test_conditions`
 
 如果文献中缺失某项，统一填入 `"no information"`。
+
+如果你需要支持别的合金体系，通常只需要替换以下几层：
+
+- `prompts/core.py` 中的抽取提示词
+- `operators/domain/` 下的领域封装算子
+- `pipelines/` 下的具体业务 Pipeline
 
 ## 2. 代码结构
 
@@ -66,13 +78,13 @@ alloy_data_extraction/
 - `provider.py`
   负责读取 `.env` 并创建 `APILLMServing_request`
 - `prompts/core.py`
-  负责定义 HEA 抽取 Prompt
+  负责定义当前示例中的 HEA 抽取 Prompt
 - `operators/core/`
-  放通用可复用算子，不绑定 HEA 领域
+  放通用可复用算子，不绑定具体合金领域
 - `operators/domain/`
-  放 HEA 领域封装算子
+  放领域封装算子，当前仓库内置的是 HEA 示例
 - `pipelines/`
-  放符合 DataFlow 风格的流水线编排
+  放符合 DataFlow 风格的流水线编排，当前内置主入口为 HEA Pipeline
 - `utils/manifest.py`
   负责构建输入 JSONL 清单
 - `scripts/`
@@ -172,13 +184,13 @@ DF_MODEL_ID=deepseek-chat
 - 根据默认字段补全缺失值
 - 将结构化结果写回 `output_key` 和各个字段列
 
-它不绑定 HEA 字段，因此后续可以复用于别的材料方向。
+它不绑定 HEA 字段，因此后续可以复用于任意合金或其他材料方向。
 
 ### 5.3 Domain Operator
 
 [alloy_data_extraction/operators/domain/hea_info_extractor.py](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/alloy_data_extraction/operators/domain/hea_info_extractor.py)
 
-这是 HEA 领域算子，负责：
+这是当前仓库内置的 HEA 领域算子，负责：
 
 - 绑定 HEA 专用 Prompt
 - 绑定 HEA JSON Schema
@@ -314,9 +326,50 @@ python -m alloy_data_extraction.pipelines.hea_pdf_pipeline --resume-step 1
 
 其中 `hea_json` 是单列 JSON 字符串，其他 4 列是拆分后的字段列。
 
-## 10. 代码级示例
+## 10. UI 查看器说明
 
-### 10.1 单独构建 LLM Serving
+仓库自带一个本地离线可用的 JSONL 查看器，位于 [ui/index.html](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/ui/index.html)。
+
+### 10.1 打开方式
+
+直接在浏览器中打开 `ui/index.html` 即可，不依赖后端服务。
+
+### 10.2 适合查看的文件
+
+- `cache/hea_pipeline/pdf_sources.jsonl`
+- `cache/hea_pipeline/hea_extraction_step1.jsonl`
+- `cache/hea_pipeline/hea_extraction_step2.jsonl`
+
+如果你后续扩展了别的合金 Pipeline，只要输出仍然是 JSONL，这个查看器通常也可以直接复用。
+
+### 10.3 典型使用流程
+
+1. 打开 `ui/index.html`
+2. 拖拽或多选导入一个或多个 `.jsonl` 文件
+3. 在左侧文件列表里切换不同输出文件
+4. 在左侧记录列表里选择具体样本
+5. 在右侧查看摘要、元信息、结构化字段和原始 JSON
+
+### 10.4 当前 UI 能力
+
+- 支持本地拖拽上传和多文件导入
+- 支持按标题、路径、字段内容搜索记录
+- 会自动解析每行 JSON，以及记录中的 `hea_json` 字段
+- 支持复制字段内容
+- 支持原始 JSON 全屏查看
+- 所有解析都在浏览器本地完成，不上传文件
+
+### 10.5 UI 使用建议
+
+- 看整体处理进度时，优先导入 `hea_extraction_step1.jsonl` 和 `hea_extraction_step2.jsonl`
+- 排查抽取质量时，重点对照 `source`、`text_path`、结构化字段和原始 JSON
+- 如果某条记录没有正确解析 `hea_json`，可以先从右侧原始 JSON 判断是模型输出问题还是 JSON 格式问题
+
+更多补充说明见 [ui/README.md](/D:/XJTU/ImportantFile/auto-design-alloy/alloy_data_extraction/ui/README.md)。
+
+## 11. 代码级示例
+
+### 11.1 单独构建 LLM Serving
 
 ```python
 from alloy_data_extraction.provider import build_api_llm_serving
@@ -328,7 +381,7 @@ llm = build_api_llm_serving(
 )
 ```
 
-### 10.2 单独实例化 Pipeline
+### 11.2 单独实例化 Pipeline
 
 ```python
 from alloy_data_extraction.pipelines.hea_pdf_pipeline import (
@@ -344,19 +397,19 @@ pipeline.compile()
 pipeline.forward(resume_step=resolve_resume_step("./cache/hea_pipeline"))
 ```
 
-## 11. 当前实现约束
+## 12. 当前实现约束
 
 为了保持代码简单，当前版本有这些约束：
 
-- 只抽取 4 个固定字段
+- 当前内置 HEA 示例只抽取 4 个固定字段
 - `BASE_URLS` 如果配置多个地址，只使用第一个
 - Markdown 读取失败时，该条会退化为空文本抽取
 - 某些 OpenAI-compatible 接口不支持 `json_schema` 时会自动降级，但仍要求模型最终返回可解析 JSON
 
-## 12. 建议的后续扩展
+## 13. 建议的后续扩展
 
 如果后续继续扩展，建议保持现在这套分层：
 
 1. 新增字段时，优先只改 `prompts/core.py` 和 `operators/domain/hea_info_extractor.py`
-2. 新增材料方向时，复用 `operators/core/markdown_json_schema_extractor.py`
+2. 新增合金方向时，复用 `operators/core/markdown_json_schema_extractor.py`
 3. 新增流水线步骤时，只在 `pipelines/hea_pdf_pipeline.py` 追加算子，不把业务细节塞进 `forward()`
