@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEA JSONL Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="workspace">
+    <aside class="sidebar">
+      <section class="sidebar-card intro-card">
+        <p class="eyebrow">HEA JSONL Reader</p>
+        <h1>双栏资料台</h1>
+        <p class="intro-text">保持左右分栏，用更细腻的层级折叠方式查看 `hea_extraction_step2.jsonl` 这类记录。</p>
+
+        <label id="upload-zone" class="upload-zone">
+          <input id="file-input" type="file" accept=".jsonl,.json,.txt" multiple>
+          <span class="upload-kicker">Drop files here</span>
+          <strong>导入一个或多个 JSONL</strong>
+          <span class="upload-hint">支持拖拽、单选和多选，解析全部在浏览器本地完成。</span>
+        </label>
+
+        <div class="toolbar">
+          <input id="record-search" class="search-input" type="search" placeholder="搜索标题、路径、字段、原始输出">
+          <button id="clear-files" class="ghost-button" type="button">清空</button>
+        </div>
+
+        <div class="stats-row">
+          <article class="stat-tile">
+            <span>文件</span>
+            <strong id="stat-files">0</strong>
+          </article>
+          <article class="stat-tile">
+            <span>记录</span>
+            <strong id="stat-records">0</strong>
+          </article>
+          <article class="stat-tile">
+            <span>已解析</span>
+            <strong id="stat-parsed">0</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="sidebar-card">
+        <div class="section-head">
+          <h2>文件列表</h2>
+          <span id="file-count" class="count-pill">0</span>
+        </div>
+        <div id="file-list" class="nav-list empty-state">上传后在这里选择文件</div>
+      </section>
+
+      <section class="sidebar-card grow-card">
+        <div class="section-head">
+          <h2>记录列表</h2>
+          <span id="record-count" class="count-pill">0</span>
+        </div>
+        <div id="record-list" class="nav-list empty-state">选择文件后显示记录</div>
+      </section>
+    </aside>
+
+    <main class="reader">
+      <section class="hero-card">
+        <div>
+          <p class="eyebrow">Layered Reading</p>
+          <h2 id="detail-title">等待导入数据</h2>
+          <p id="detail-subtitle" class="hero-text">右侧会按“摘要概览、元信息、结构化字段、原始记录”层层展开，适合逐层核对提取结果。</p>
+        </div>
+        <div class="hero-badges">
+          <span class="hero-badge">左右分栏</span>
+          <span class="hero-badge">多层折叠</span>
+          <span class="hero-badge">复制 / 全屏</span>
+        </div>
+      </section>
+
+      <section class="reader-grid">
+        <article class="reader-card summary-card">
+          <div class="section-head">
+            <h3>概览</h3>
+          </div>
+          <div id="summary-view" class="summary-grid empty-state">暂无摘要</div>
+        </article>
+
+        <article class="reader-card meta-card">
+          <div class="section-head">
+            <h3>元信息</h3>
+          </div>
+          <div id="meta-fields" class="accordion-root empty-state">暂无记录</div>
+        </article>
+
+        <article class="reader-card structure-card">
+          <div class="section-head">
+            <h3>结构化字段</h3>
+          </div>
+          <div id="structured-view" class="accordion-root empty-state">暂无结构化字段</div>
+        </article>
+
+        <article class="reader-card code-card">
+          <div class="section-head">
+            <h3>原始 JSON</h3>
+          </div>
+          <div class="toolbar-inline">
+            <button class="mini-button" type="button" data-copy-target="raw-json-view" data-copy-label="raw-json">Copy</button>
+            <button class="mini-button" type="button" data-fullscreen-target="raw-json-view" data-fullscreen-title="原始 JSON">Full View</button>
+          </div>
+          <pre id="raw-json-view" class="code-view empty-state">暂无原始数据</pre>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div id="fullscreen-modal" class="fullscreen-modal hidden" aria-hidden="true">
+    <div class="fullscreen-backdrop" data-close-fullscreen="true"></div>
+    <section class="fullscreen-panel" role="dialog" aria-modal="true" aria-labelledby="fullscreen-title">
+      <div class="fullscreen-head">
+        <h3 id="fullscreen-title">Full View</h3>
+        <div class="toolbar-inline">
+          <button id="fullscreen-copy" class="mini-button" type="button">Copy</button>
+          <button id="fullscreen-close" class="mini-button" type="button">Close</button>
+        </div>
+      </div>
+      <pre id="fullscreen-content" class="code-view fullscreen-code"></pre>
+    </section>
+  </div>
+
+  <template id="file-item-template">
+    <button class="nav-item file-item" type="button">
+      <span class="nav-title file-item-name"></span>
+      <span class="nav-meta file-item-meta"></span>
+    </button>
+  </template>
+
+  <template id="record-item-template">
+    <button class="nav-item record-item" type="button">
+      <span class="record-index"></span>
+      <span class="nav-title record-title"></span>
+      <span class="nav-meta record-tags"></span>
+    </button>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>
