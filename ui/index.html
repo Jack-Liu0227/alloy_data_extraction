@@ -14,8 +14,8 @@
     <aside class="sidebar">
       <section class="sidebar-card intro-card">
         <p class="eyebrow">Alloy JSONL Reader</p>
-        <h1>双栏资料台</h1>
-        <p class="intro-text">保持左右分栏，用更细腻的层级折叠方式查看 `alloy_extraction_step2.jsonl` 这类记录。</p>
+        <h1>双栏资料卡</h1>
+        <p class="intro-text">导入 `alloy_extraction_step2.jsonl` 或 `hea_extraction_step2.jsonl`，在左侧选记录，在右侧查看结构化内容。</p>
 
         <label id="upload-zone" class="upload-zone">
           <input id="file-input" type="file" accept=".jsonl,.json,.txt" multiple>
@@ -25,7 +25,7 @@
         </label>
 
         <div class="toolbar">
-          <input id="record-search" class="search-input" type="search" placeholder="搜索标题、路径、字段、原始输出">
+          <input id="record-search" class="search-input" type="search" placeholder="搜索标题、路径、字段或原始输出">
           <button id="clear-files" class="ghost-button" type="button">清空</button>
         </div>
 
@@ -67,12 +67,24 @@
         <div>
           <p class="eyebrow">Layered Reading</p>
           <h2 id="detail-title">等待导入数据</h2>
-          <p id="detail-subtitle" class="hero-text">右侧会按“摘要概览、元信息、结构化字段、原始记录”层层展开，适合逐层核对提取结果。</p>
+          <p id="detail-subtitle" class="hero-text">在顶部选择需要展开的字段，右侧详情区会只显示这些结构化块。</p>
         </div>
-        <div class="hero-badges">
-          <span class="hero-badge">左右分栏</span>
-          <span class="hero-badge">多层折叠</span>
-          <span class="hero-badge">复制 / 全屏</span>
+        <div class="hero-side">
+          <div class="hero-badges">
+            <span class="hero-badge">双栏阅读</span>
+            <span class="hero-badge">字段切换</span>
+            <span class="hero-badge">复制 / 全屏</span>
+          </div>
+          <div class="field-picker">
+            <div class="field-picker-head">
+              <span class="field-picker-label">Fields</span>
+              <div class="toolbar-inline">
+                <button id="show-all-fields" class="mini-button" type="button">All</button>
+                <button id="show-core-fields" class="mini-button" type="button">Core</button>
+              </div>
+            </div>
+            <div id="field-filter-list" class="field-filter-list"></div>
+          </div>
         </div>
       </section>
 

@@ -1,3 +1,47 @@
+const STRUCTURED_FIELDS = [
+  {
+    key: "composition",
+    title: "Composition",
+    caption: "成分与体系信息",
+    getValue: (record, parsed) => parsed.composition || record.raw.composition || "no information",
+  },
+  {
+    key: "processing",
+    title: "Processing",
+    caption: "工艺、流程与处理条件",
+    getValue: (record, parsed) => parsed.processing || record.raw.processing || "no information",
+  },
+  {
+    key: "properties",
+    title: "Properties",
+    caption: "力学性质与补充说明",
+    getValue: (record, parsed) => ({
+      UTS: parsed.UTS || "no information",
+      YS: parsed.YS || "no information",
+      El: parsed.El || "no information",
+      properties_text: record.raw.properties || "no information",
+    }),
+  },
+  {
+    key: "conditions",
+    title: "Conditions",
+    caption: "分类、原文与测试条件",
+    getValue: (record, parsed) => ({
+      category: parsed.category || "no information",
+      raw_text: parsed.raw_text || "no information",
+      test_conditions: parsed.test_conditions || record.raw.test_conditions || "no information",
+    }),
+  },
+  {
+    key: "alloy_json",
+    title: "alloy_json",
+    caption: "解析后的完整结构",
+    getValue: (record, parsed) => parsed || "no information",
+  },
+];
+
+const CORE_FIELD_KEYS = ["composition", "processing", "properties", "conditions"];
+
 const state = {
   files: [],
   activeFileId: null,
@@ -5,6 +49,7 @@ const state = {
   query: "",
   fullscreenText: "",
   fullscreenTitle: "",
+  visibleFieldKeys: new Set(STRUCTURED_FIELDS.map((field) => field.key)),
 };
 
 const el = {
@@ -25,6 +70,9 @@ const el = {
   metaFields: document.getElementById("meta-fields"),
   structuredView: document.getElementById("structured-view"),
   rawJsonView: document.getElementById("raw-json-view"),
+  fieldFilterList: document.getElementById("field-filter-list"),
+  showAllFields: document.getElementById("show-all-fields"),
+  showCoreFields: document.getElementById("show-core-fields"),
   fullscreenModal: document.getElementById("fullscreen-modal"),
   fullscreenTitle: document.getElementById("fullscreen-title"),
   fullscreenContent: document.getElementById("fullscreen-content"),
@@ -106,7 +154,7 @@ function renderObjectRows(obj) {
       ${Object.entries(obj).map(([key, value]) => `
         <div class="kv-row">
           <span class="kv-key">${escapeHtml(key)}</span>
-          ${renderValue(value, `${key}`)}
+          ${renderValue(value, key)}
         </div>
       `).join("")}
     </div>
@@ -266,6 +314,36 @@ function setEmpty(container, text, className) {
   container.textContent = text;
 }
 
+function renderFieldFilters() {
+  if (!el.fieldFilterList) return;
+
+  el.fieldFilterList.innerHTML = STRUCTURED_FIELDS.map((field) => {
+    const active = state.visibleFieldKeys.has(field.key) ? " is-active" : "";
+    return `
+      <button class="field-filter${active}" type="button" data-field-key="${field.key}">
+        ${escapeHtml(field.title)}
+      </button>
+    `;
+  }).join("");
+}
+
+function setVisibleFields(fieldKeys) {
+  state.visibleFieldKeys = new Set(fieldKeys);
+  renderFieldFilters();
+  renderStructured(getActiveRecord());
+}
+
+function toggleVisibleField(fieldKey) {
+  const next = new Set(state.visibleFieldKeys);
+  if (next.has(fieldKey)) {
+    if (next.size === 1) return;
+    next.delete(fieldKey);
+  } else {
+    next.add(fieldKey);
+  }
+  setVisibleFields(next);
+}
+
 function renderFiles() {
   el.fileCount.textContent = String(state.files.length);
 
@@ -401,26 +479,21 @@ function renderStructured(record) {
   }
 
   const parsed = record.parsedAlloyJson || {};
-  const sections = [
-    ["Composition", parsed.composition || record.raw.composition || "no information", "成分与体系信息"],
-    ["Processing", parsed.processing || record.raw.processing || "no information", "工艺、流程、处理条件"],
-    ["Properties", {
-      UTS: parsed.UTS || "no information",
-      YS: parsed.YS || "no information",
-      El: parsed.El || "no information",
-      properties_text: record.raw.properties || "no information",
-    }, "力学性质与摘要字段"],
-    ["Conditions", {
-      category: parsed.category || "no information",
-      raw_text: parsed.raw_text || "no information",
-      test_conditions: parsed.test_conditions || record.raw.test_conditions || "no information",
-    }, "分类、原文与测试条件"],
-    ["alloy_json", parsed || "no information", "解析后的完整结构"],
-  ];
+  const visibleSections = STRUCTURED_FIELDS.filter((field) => state.visibleFieldKeys.has(field.key));
+
+  if (!visibleSections.length) {
+    setEmpty(el.structuredView, "至少保留一个字段", "accordion-root");
+    return;
+  }
 
   el.structuredView.className = "accordion-root";
-  el.structuredView.innerHTML = sections
-    .map(([title, value, caption], index) => renderAccordionItem(title, value, caption, index === 0))
+  el.structuredView.innerHTML = visibleSections
+    .map((field, index) => renderAccordionItem(
+      field.title,
+      field.getValue(record, parsed),
+      field.caption,
+      index === 0
+    ))
     .join("");
 }
 
@@ -437,7 +510,7 @@ function renderRaw(record) {
 
 function renderEmptyDetail() {
   el.detailTitle.textContent = "等待导入数据";
-  el.detailSubtitle.textContent = "右侧会按“摘要概览、元信息、结构化字段、原始记录”层层展开，适合逐层核对提取结果。";
+  el.detailSubtitle.textContent = "在顶部选择字段，右侧会只展开对应的结构化内容。";
   renderSummary(null);
   renderMeta(null);
   renderStructured(null);
@@ -477,6 +550,7 @@ function renderStats() {
 }
 
 function render() {
+  renderFieldFilters();
   renderFiles();
   renderRecords();
   renderDetail();
@@ -550,6 +624,12 @@ function handleFullscreen(button) {
 }
 
 document.addEventListener("click", async (event) => {
+  const fieldButton = event.target.closest("[data-field-key]");
+  if (fieldButton) {
+    toggleVisibleField(fieldButton.dataset.fieldKey);
+    return;
+  }
+
   const copyButton = event.target.closest("[data-copy-text], [data-copy-target]");
   if (copyButton) {
     await handleCopy(copyButton);
@@ -565,6 +645,14 @@ document.addEventListener("click", async (event) => {
   if (event.target.closest("[data-close-fullscreen='true']")) {
     closeFullscreen();
   }
+});
+
+el.showAllFields.addEventListener("click", () => {
+  setVisibleFields(STRUCTURED_FIELDS.map((field) => field.key));
+});
+
+el.showCoreFields.addEventListener("click", () => {
+  setVisibleFields(CORE_FIELD_KEYS);
 });
 
 el.fullscreenCopy.addEventListener("click", async () => {
